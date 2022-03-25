@@ -44,7 +44,7 @@ def update_step(X, model, window):
 
     return X
 
-def forecast(sleep, time0, DATA_PATH):
+def forecast(sleep, time0, DATA_PATH, forecast_period):
     window = 10 * 24 * 6
     X_train, y_train = prepare_data(sleep, window)
     model = train_model(X_train, y_train)
@@ -52,18 +52,44 @@ def forecast(sleep, time0, DATA_PATH):
     X = X_train[-1:]
     futuresleep = np.array(X.iloc[-1, window - 64 : window])
 
-    m = 2*6*24
-    for i in range(m):
+    for i in range(forecast_period):
         X = update_step(X, model, window).copy()
         futuresleep = np.append(futuresleep, X.iloc[-1, window - 1])
 
-    times = pd.date_range(start = sleep.index[-65], periods = 64 + m, freq = '10min')
+    times = pd.date_range(start = sleep.index[-65], periods = 64 + forecast_period, freq = '10min')
     answer = pd.DataFrame(data = futuresleep, index = times, columns = ['trend'])
 
-    trend = pd.read_csv(os.path.join(DATA_PATH, 'NYU_data_processed/NYU_trend.csv'), parse_dates=['timestamps'], index_col= 'timestamps')
+    trend = pd.read_csv(os.path.join(DATA_PATH, 'NYU_data_processed/NYU_trend.csv'),
+                        parse_dates=['timestamps'], index_col= 'timestamps')
     addtrend = pd.DataFrame(trend.trend[answer.index[0]:answer.index[-1]])
     answer = answer + addtrend
     answer.trend = (answer.trend > 0.4).astype(int)
     answer.index += time0 - answer.index[64]
 
     return answer
+
+def predict_proba(sleep, DATA_PATH):
+    window = 10 * 24 * 6
+    X_train, y_train = prepare_data(sleep, window)
+    model = train_model(X_train, y_train)
+
+    X = X_train[-1:]
+    futuresleep = np.array(X.iloc[-1, window - 64: window])
+    X = update_step(X, model, window).copy()
+    futuresleep = np.append(futuresleep, X.iloc[-1, window - 1])
+
+    times = pd.date_range(start=sleep.index[-65], periods=64 + 1, freq='10min')
+    answer = pd.DataFrame(data=futuresleep, index=times, columns=['trend'])
+
+    trend = pd.read_csv(os.path.join(DATA_PATH, 'NYU_data_processed/NYU_trend.csv'),
+                        parse_dates=['timestamps'], index_col='timestamps')
+    addtrend = pd.DataFrame(trend.trend[answer.index[0]:answer.index[-1]])
+    answer = answer + addtrend
+
+    predval = answer.iloc[-1, 0]
+    if predval > 1:
+        predval = 1
+    if predval < 0:
+        predval = 0
+
+    return predval
