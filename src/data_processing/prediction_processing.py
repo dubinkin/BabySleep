@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-
+import pandas as pd
 
 def smooth(prediction, conv, start):
     '''
@@ -33,6 +33,10 @@ def smooth(prediction, conv, start):
 def plot_predict(ans, PREDICT_PATH, NAME):
     fig, ax = plt.subplots(figsize = (10, 4))
     ans.plot(ax = ax)
+    hrs_begin = ans.index[0].ceil(freq='1h')
+    hrs_end = ans.index[-1].floor(freq='1h')
+    allhrs = pd.date_range(start=hrs_begin, end=hrs_end, freq='1h')
+    plt.vlines(x=allhrs, ymin=-0.01, ymax=1.0, colors='gray', alpha=0.25)
     plt.fill_between(x = ans.index, y1 = ans.trend, alpha = 0.25)
     plt.yticks([])
     plt.text(-0.05,0.95,'Sleeping',horizontalalignment='center',

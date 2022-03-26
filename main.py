@@ -9,7 +9,7 @@ import numpy as np
 sleep, time0 = load_data.get_sleep('12/06/2021', 'data/')
 
 #generate sleepy score prediction
-score = int(sscore.sleepy_score(sleep))
+score = sscore.sleepy_score(sleep)
 print('Raw sleepy score:', score)
 if score < 2.5:
     score = 0
@@ -22,7 +22,7 @@ print('Sleepy score: %1d out of 3' % (score+1))
 print(sleepdict[score])
 
 #define smoothing function which helps to average over several predictions
-weights = np.array([1, 1, 1])
+weights = np.array([1, 1, 0])
 conv = np.array([1, 1, 2, 4, 6, 4, 2, 1, 1])
 conv = conv / conv.sum()
 
@@ -38,7 +38,7 @@ ans, pred1, pred2, pred3 = ensemble.forecast(sleep, time0, DATA_PATH, MODEL_PATH
 predprocess.plot_predict(ans, 'predictions/', 'forecast.png')
 predprocess.plot_predict(pred1, 'predictions/', 'prediction_LGBM_1step.png')
 predprocess.plot_predict(pred2, 'predictions/', 'prediction_LGBM_avg.png')
-predprocess.plot_predict(pred3, 'predictions/', 'prediction_SARIMAX.png')
+#predprocess.plot_predict(pred3, 'predictions/', 'prediction_SARIMAX.png')
 
 
 #update the model if needed

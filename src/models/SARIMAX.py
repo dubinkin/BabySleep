@@ -13,8 +13,13 @@ def forecast(sleep, time0, DATA_PATH, MODEL_PATH, forecast_period):
     #update model with the new data
     file = open(os.path.join(MODEL_PATH, 'saved_models/SARIMAX_time.txt'), 'r')
     last_time = pd.Timestamp(file.read())
+    file.close()
     timeseries0 = timeseries[timeseries.index > last_time]
     res = res.append(timeseries0)
+    res.save(os.path.join(MODEL_PATH, 'saved_models/SARIMAX.pkl'))
+    file = open(os.path.join(MODEL_PATH, 'saved_models/SARIMAX_last_update.txt'), 'w')
+    file.write(time0.strftime('%Y-%m-%d %X'))
+    file.close()
 
     #get the forecast
     forecast = res.get_forecast(steps = forecast_period)
@@ -34,11 +39,12 @@ def forecast(sleep, time0, DATA_PATH, MODEL_PATH, forecast_period):
 def model_update(sleep, time0, MODEL_PATH):
 
     #get the date when the SARIMAX model was last updated
-    modtimesec = os.path.getmtime(os.path.join(MODEL_PATH, 'saved_models/SARIMAX.pkl'))
-    model_last_update = pd.to_datetime(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(modtimesec)))
+    file = open(os.path.join(MODEL_PATH, 'saved_models/SARIMAX_last_update.txt'), 'r')
+    model_last_update = pd.Timestamp(file.read())
+    file.close()
 
     #update the model if it's more than 5 days old
-    if time0 - model_last_update > pd.Timedelta(days = 5):
+    if time0 - model_last_update > pd.Timedelta(days = 3):
         timeseries = (sleep.sleep - sleep.trend)[-10 * 24 * 6 - 12 * 6 :]
         mod = SARIMAX(timeseries,
                       order=(10, 0, 0),
@@ -46,8 +52,11 @@ def model_update(sleep, time0, MODEL_PATH):
         res = mod.fit()
         res.save(os.path.join(MODEL_PATH, 'saved_models/SARIMAX.pkl'))
 
-        file = open(os.path.join(MODEL_PATH,'saved_models/SARIMAX_time.txt'), 'x')
+        file = open(os.path.join(MODEL_PATH,'saved_models/SARIMAX_time.txt'), 'w')
         file.write(timeseries.index[-1].strftime('%Y-%m-%d %X'))
+        file.close()
+        file = open(os.path.join(MODEL_PATH, 'saved_models/SARIMAX_last_update.txt'), 'w')
+        file.write(time0.strftime('%Y-%m-%d %X'))
         file.close()
 
 
